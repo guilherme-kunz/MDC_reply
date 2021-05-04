@@ -21,11 +21,15 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
+import androidx.core.view.doOnPreDraw
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.observe
+import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.ItemTouchHelper
+import com.google.android.material.transition.MaterialElevationScale
+import com.google.android.material.transition.MaterialFadeThrough
 import com.materialstudies.reply.R
 import com.materialstudies.reply.data.Email
 import com.materialstudies.reply.data.EmailStore
@@ -57,8 +61,9 @@ class HomeFragment : Fragment(), EmailAdapter.EmailAdapterListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // TODO: Set up MaterialFadeThrough enterTransition.
+        enterTransition = MaterialFadeThrough().apply {
+            duration = resources.getInteger(R.integer.reply_motion_duration_large).toLong()
+        }
     }
 
     override fun onCreateView(
@@ -91,13 +96,23 @@ class HomeFragment : Fragment(), EmailAdapter.EmailAdapterListener {
 
         EmailStore.getEmails(args.mailbox).observe(viewLifecycleOwner) {
             emailAdapter.submitList(it)
+
+            postponeEnterTransition()
+            view.doOnPreDraw { startPostponedEnterTransition() }
         }
     }
 
     override fun onEmailClicked(cardView: View, email: Email) {
-        // TODO: Set up MaterialElevationScale transition as exit and reenter transitions.
+        val emailCardDetailTransitionName = getString(R.string.email_card_detail_transition_name)
+        val extras = FragmentNavigatorExtras(cardView to emailCardDetailTransitionName)
         val directions = HomeFragmentDirections.actionHomeFragmentToEmailFragment(email.id)
-        findNavController().navigate(directions)
+        findNavController().navigate(directions, extras)
+        exitTransition = MaterialElevationScale(false).apply {
+            duration = resources.getInteger(R.integer.reply_motion_duration_large).toLong()
+        }
+        reenterTransition = MaterialElevationScale(true).apply {
+            duration = resources.getInteger(R.integer.reply_motion_duration_large).toLong()
+        }
     }
 
     override fun onEmailLongPressed(email: Email): Boolean {
